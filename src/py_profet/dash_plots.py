@@ -123,8 +123,7 @@ def get_trace_df(trace_file_path, row_file_path, precision):
         # calculate read ratio
         df['rr'] = 100 - df['wr']
 
-        # trace_feather_path = os.path.join('../notebooks/', trace_file_path.split('/')[-1].replace('.prv', '.feather'))
-        # df.to_feather(trace_feather_path)
+        # df.to_feather(trace_file_path.split('/')[-1].replace('.prv', '.feather'))
 
         return df
 

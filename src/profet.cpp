@@ -52,7 +52,7 @@ string getProjectPath() {
 }
 
 string PROJECT_PATH = getProjectPath();
-int PRECISION = 2; // Decimal precision for memory metrics
+int PRECISION = 3; // Decimal precision for memory metrics
 int PROFET_BASE_EVENT_TYPE = 94000000; // Base event type for Profet events in Paraver
 
 
@@ -330,8 +330,8 @@ bool processAndWriteMemoryMetricsIfPossible(vector<NodeMemoryRecords> &nodes,
     vector<float> metrics = node.processMemoryMetrics(profetPyAdapter, smallestTimeSocketID, smallestTimeMCID, allowEmptyQueues);
     // cout << "Example metrics: " << metrics[0] << " " << metrics[1] << endl;
 
-    // Convert metrics to int because prv files do not accept decimals. The number of decimal places is specified in the pcf file
-    // and it is stored in the PRECISION variable
+    // Convert metrics to int because prv files do not accept decimals.
+    // The number of decimal places is specified in the pcf file and it is stored in the PRECISION variable
     vector<int> metrics_int(metrics.size());
     for (long unsigned int i = 0; i < metrics.size(); i++) {
       // Do not allow negative metric values, they mean the calculated bandwidth is not theoretically possible.

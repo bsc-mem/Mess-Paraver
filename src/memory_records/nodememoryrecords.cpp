@@ -130,7 +130,9 @@ vector<float> NodeMemoryRecords::processMemoryMetrics(ProfetPyAdapter &profetPyA
   float writeRatio = writeBW / (readBW + writeBW);
   // cout << writeBW << " " << readBW << " " << writeRatio << endl;
   float bandwidth = readBW + writeBW;
-  // cout << socketID << " " << readBW << " " << writeBW << " " << writeRatio << " " << bandwidth << endl;
+  if (bandwidth == 0) {
+    cout << socketID << " " << readBW << " " << writeBW << " " << writeRatio << " " << bandwidth << endl;
+  }
 
   // Get computed memory metrics
   auto [maxBandwidth, latency, leadOffLatency, maxLatency, stressScore] = profetPyAdapter.computeMemoryMetrics(cpuFreqGHz, writeRatio, bandwidth,
