@@ -523,7 +523,6 @@ int main(int argc, char *argv[]) {
     vector<MyRecord> &loadedRecords = records.getLoadedRecords();
     // Loop over stored records
     for (auto record : loadedRecords) {
-      // TODO is this a global thread???
       auto globalThread = record.getThread();
       TApplOrder app;
       TTaskOrder task;
@@ -534,9 +533,10 @@ int main(int argc, char *argv[]) {
         outputRecords.insert(pair<TRecordTime, MyRecord>(record.getTime(), record));
       }
 
+      // Only consider memory events with counter greater than zero
       TEventType evtType = record.getEventType();
-      // Only consider memory events
-      if (record.getType() != EVENT || !isMemoryEvent(memEventTypes, evtType)) {
+      unsigned long long eventValue = record.getEventValue();
+      if (record.getType() != EVENT || !isMemoryEvent(memEventTypes, evtType) || eventValue == 0) {
         continue;
       }
 
@@ -553,7 +553,7 @@ int main(int argc, char *argv[]) {
         mcRecord.t0 = node.sockets[socketID].getLastWriteTime(mcID);
       }
       mcRecord.t1 = record.getTime();
-      mcRecord.n = record.getEventValue();
+      mcRecord.n = eventValue;
       // Add memory record to its corresponding socket and MC
       memEventTypes[evtType].isRead ? node.addRead(socketID, mcID, mcRecord) : node.addWrite(socketID, mcID, mcRecord);
 
