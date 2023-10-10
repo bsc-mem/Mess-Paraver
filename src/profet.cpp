@@ -69,15 +69,7 @@ vector<pair<string, string>> memoryMetricLabels = {
 
 void printHelp() {
   cout << "Usage: profet [OPTION] <input_trace_file.prv> <output_trace_file.prv> <configuration_file.json>\n\n";
-  // cout << "-i, --input=FILE\n"
-  //         "\t\tInput prv file\n"
-  //         "-o, --output=FILE\n"
-  //         "\t\tOutput prv file\n"
-  //         "-c, --config=FILE\n"
-  //         "\t\tConfiguration file\n"
-  cout << "-m, --memory-channel\n"
-          "\t\tCalculate memory stress metrics per memory channel, rather than per socket (default)\n"
-          "-e, --exclude-original\n"
+  cout << "-e, --exclude-original\n"
           "\t\tExclude the first application of the original trace in the output trace file\n"
           "-w, --no-warnings\n"
           "\t\tSuppress warning messages\n"
@@ -96,10 +88,6 @@ tuple<string, string, string, bool, bool, int, int, int> processArgs(int argc, c
   // const char* const short_opts = "i:o:c:w";
   const char* const short_opts = "mewqIph";
   const option long_opts[] = {
-          // {"input", required_argument, nullptr, 'i'},
-          // {"output", required_argument, nullptr, 'o'},
-          // {"config", required_argument, nullptr, 'c'},
-          {"memory-channel", no_argument, nullptr, 'm'},
           {"exclude-original", no_argument, nullptr, 'e'},
           {"no-warnings", no_argument, nullptr, 'w'},
           {"quiet", no_argument, nullptr, 'q'},
@@ -112,7 +100,8 @@ tuple<string, string, string, bool, bool, int, int, int> processArgs(int argc, c
   int displayText = 1; // whether to display info text or not (it need to be an integer for sending it to python (booleans don't work))
   int displayWarnings = 1; // whether to display warnings or not (it need to be an integer for sending it to python (booleans don't work))
   int runDash = 0; // whether to run dash or not (it need to be an integer for sending it to python (booleans don't work))
-  bool perSocket = true;
+  // whether to use per socket or per memory channel metrics. Currently we calculate everything per memory channel
+  bool perSocket = false;
   bool keepOriginalTrace = true;
   bool showSupportedSystems = false;
   bool showHelp = false;
@@ -120,10 +109,6 @@ tuple<string, string, string, bool, bool, int, int, int> processArgs(int argc, c
 
   while ((opt = getopt_long(argc, argv, short_opts, long_opts, nullptr)) != -1) {
     switch (opt) {
-      case 'm':
-          perSocket = false;
-          break;
-
       case 'e':
           keepOriginalTrace = false;
           break;
