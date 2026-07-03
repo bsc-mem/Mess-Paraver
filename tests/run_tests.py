@@ -12,6 +12,9 @@ this file. If not, please visit: https://opensource.org/licenses/BSD-3-Clause
 import argparse
 import json
 import os
+import pathlib
+import platform
+import subprocess
 import sys
 
 
@@ -41,6 +44,12 @@ def parse_args():
     return parser.parse_args()
 
 
+def bundled_python_libs_path() -> pathlib.Path:
+    arch = "python_libs_x86_64" if platform.machine() == "x86_64" else "python_libs_arm64"
+    abi = f"cp{sys.version_info.major}{sys.version_info.minor}"
+    return pathlib.Path("bin") / f"{arch}_{abi}"
+
+
 def test_with_parameters(
     raw_file: str,
     processed_file: str,
@@ -64,19 +73,19 @@ def test_with_parameters(
     # processed_file_name = os.path.basename(processed_file)
     # correct_out_traces_dir = 'correct_out_traces'
 
-    flags = ""
+    flags = []
     if no_warnings:
-        flags += "--no-warnings "
+        flags.append("--no-warnings")
     if no_text:
-        flags += "--quiet "
+        flags.append("--quiet")
     if not per_socket:
-        flags += "--memory-channel "
+        flags.append("--memory-channel")
     if not omit_original_trace:
-        flags += "--keep-original "
+        flags.append("--keep-original")
 
-    profet_command = f"./bin/mess-prv {raw_file} {processed_file} {config_file} {flags}"
-    print(profet_command)
-    profet_exit_code = os.system(profet_command)
+    profet_command = ["./bin/mess-prv", raw_file, processed_file, config_file, *flags]
+    print(" ".join(profet_command))
+    profet_exit_code = subprocess.call(profet_command)
     if profet_exit_code != 0:
         sys.exit(-1)
 
@@ -85,8 +94,26 @@ def test_with_parameters(
 
     if not no_tests:
         # run with command instead of importing the module. It is much better like this because of the way unittests work.
-        tests_exit_code = os.system(
-            f"python3 tests/functional_test.py {raw_file} {processed_file} {precision} {nnodes} {nsockets} {nmcs} {int(omit_original_trace)}"
+        test_env = os.environ.copy()
+        bundled_libs = str(bundled_python_libs_path())
+        test_env["PYTHONPATH"] = (
+            bundled_libs
+            if not test_env.get("PYTHONPATH")
+            else bundled_libs + os.pathsep + test_env["PYTHONPATH"]
+        )
+        tests_exit_code = subprocess.call(
+            [
+                sys.executable,
+                "tests/functional_test.py",
+                raw_file,
+                processed_file,
+                str(precision),
+                str(nnodes),
+                str(nsockets),
+                str(nmcs),
+                str(int(omit_original_trace)),
+            ],
+            env=test_env,
         )
         if fail_fast and tests_exit_code != 0:
             raise Exception("Functional tests failed.")
@@ -98,7 +125,9 @@ if __name__ == "__main__":
     if not args.no_compile:
         # compile the program in order to make sure we test with latest changes in the code
         print("Compiling PROFET...")
-        os.system("make")
+        compile_exit_code = subprocess.call(["make", f"PYTHON={sys.executable}"])
+        if compile_exit_code != 0:
+            sys.exit(compile_exit_code)
 
     with open("tests/test_traces.json") as json_file:
         test_traces = json.load(json_file)

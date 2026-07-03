@@ -4,22 +4,24 @@
 ##############################################################################
 
 # -------- user-tweakables ---------------------------------------------------
-PYTHON      ?= python3          # interpreter to embed
-REQ_FILE    ?= requirements.txt# pip requirements to bundle
+PYTHON      ?= python3           # interpreter to embed
+REQ_FILE    ?= requirements.txt  # pip requirements to bundle
 ##############################################################################
 
 # We need bash features later ( [[ … ]] )
 SHELL := /bin/bash
 
 # --- 1. Verify we have an interpreter ≥ 3.7 --------------------------------
-PY_OK := $(shell $(PYTHON) -c 'import sys; print("ok" if sys.version_info>=(3,7) else "bad")' 2>/dev/null || echo bad)
+PY_OK := $(shell $(PYTHON) -c 'import sys; print("ok" if sys.version_info>=(3,8) else "bad")' 2>/dev/null || echo bad)
 
 ifeq ($(PY_OK),bad)
-  $(error "$(PYTHON) is missing or < 3.7 – run 'make PYTHON=/path/to/python3.12'")
+  $(error "$(PYTHON) is missing or < 3.8 – run 'make PYTHON=/path/to/python3.12'")
 endif
 
 # --- 2. Locate the matching python-config script ---------------------------
 PY_VER := $(shell $(PYTHON) -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')
+PY_ABI := $(shell $(PYTHON) -c 'import sys; print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
+PY_EXECUTABLE := $(shell $(PYTHON) -c 'import sys; print(sys.executable)')
 
 PY_CONFIG := $(shell command -v "$(PYTHON)-config" 2>/dev/null || \
                       command -v "python$(PY_VER)-config" 2>/dev/null)
@@ -52,13 +54,13 @@ BIN_DIR  := bin
 MESS_PATH := libs/PROFET
 
 ifeq ($(shell uname -m),x86_64)
-  WHEEL_DIR := $(BIN_DIR)/python_libs_x86_64
+  WHEEL_DIR := $(BIN_DIR)/python_libs_x86_64_$(PY_ABI)
 else
-  WHEEL_DIR := $(BIN_DIR)/python_libs_arm64
+  WHEEL_DIR := $(BIN_DIR)/python_libs_arm64_$(PY_ABI)
 endif
 
 # --- 6. Targets ------------------------------------------------------------
-all: install_mess compile_cpp bundle_python_libs
+all: compile_cpp bundle_python_libs
 
 $(BIN_DIR):
 	@mkdir -p $@
@@ -66,6 +68,7 @@ $(BIN_DIR):
 compile_cpp: | $(BIN_DIR)
 	g++ -Wall -Wno-c++11-narrowing -std=c++17 -fPIE \
 	    $(PY_CFLAGS) \
+	    -DMESS_PYTHON_EXECUTABLE='"$(PY_EXECUTABLE)"' \
 	    -I libs/paraver-kernel/utils/traceparser \
 	    -I libs/boost_1_79_0 \
 	    -I libs/json-develop \

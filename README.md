@@ -7,8 +7,9 @@ The [Mess Benchmark](https://github.com/bsc-mem/Mess-benchmark) profiles memory 
 ## Prerequisites
 
 - C++17 compatible compiler
-- Python 3.10
+- Python 3.8 or newer
 - pip (Python package installer)
+- python-config for the Python version used to build
 
 
 
@@ -29,16 +30,21 @@ Follow the steps below to install Mess-Paraver:
 	git submodule update --init --recursive
 	```
 
-3. Install the Python dependencies specified in the `requirements.txt` file:
+3. Compile the source code to create a binary `mess-prv` file in the `bin` folder:
 
 	```
-	pip install -r requirements.txt
-	```
-
-
-Compile the source code to create a binary `mess-prv` file in the `bin` folder:
-
 	make
+	```
+
+	The build bundles Python dependencies under `bin/python_libs_<arch>_<python-abi>`, for example `bin/python_libs_x86_64_cp311`. This keeps native packages such as `numpy`, `pandas`, and `pyarrow` matched to the Python version embedded in `mess-prv`.
+
+	If `python3` is not the Python version you want Paraver to use, pass it explicitly:
+
+	```
+	make PYTHON=/path/to/python3.11
+	```
+
+	Very new Python versions, such as Python 3.14, work only when the required native packages publish wheels for that version. If dependency installation fails, rebuild with an available supported Python, for example Python 3.11 or Python 3.13.
 
 To use the `mess-prv` binary with Paraver (https://github.com/bsc-performance-tools/paraver-kernel), add the `bin` folder (where the `mess-prv` binary is located) to your PATH. Refer to https://www.baeldung.com/linux/path-variable for instructions on modifying the Linux PATH variable. Future versions of Mess-Paraver will streamline this step.
 

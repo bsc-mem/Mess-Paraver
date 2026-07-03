@@ -55,12 +55,12 @@ namespace pt = boost::property_tree;
 
 string getProjectPath() {
     char result[PATH_MAX];
-    string exec_path;
+    fs::path executablePath;
 #ifdef __linux__ // Check for Linux
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
     if (count != -1) {
-        exec_path = dirname(result);
-        exec_path.replace(exec_path.find("bin"), 3, "");
+        result[count] = '\0';
+        executablePath = fs::path(result);
     } else {
         std::cerr << "Unable to locate current execution path." << std::endl;
         exit(1);
@@ -68,8 +68,7 @@ string getProjectPath() {
 #elif defined(__APPLE__) // Check for macOS
     uint32_t bufsize = sizeof(result);
     if (_NSGetExecutablePath(result, &bufsize) == 0) {
-        exec_path = dirname(result);
-        exec_path.replace(exec_path.find("bin"), 3, "");
+        executablePath = fs::path(result);
     } else {
         std::cerr << "Unable to locate current execution path." << std::endl;
         exit(1);
@@ -94,7 +93,12 @@ string getProjectPath() {
     exit(1);
 #endif
 
-    return exec_path;
+    fs::path executableDir = fs::absolute(executablePath).parent_path();
+    if (executableDir.filename() == "bin") {
+        return (executableDir.parent_path() / "").string();
+    }
+
+    return (executableDir / "").string();
 }
 
 const string PROJECT_PATH = getProjectPath();
@@ -215,7 +219,8 @@ tuple<string, string, string, bool, bool, bool, int, int, int> processArgs(int a
     // ProfetPyAdapter::printSupportedSystems();
     ProfetPyAdapter adapter(PROJECT_PATH);
     adapter.printSupportedSystems();
-    exit(1);
+    PyRun_SimpleString("import sys; sys.stdout.flush()");
+    exit(0);
   }
 
   if (argc < 3 or showHelp) {
