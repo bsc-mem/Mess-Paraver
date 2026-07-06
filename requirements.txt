@@ -1,19 +1,23 @@
 dash>=3.0.0; python_version >= "3.8"
 dash==2.9.1; python_version < "3.8"
-dash-bootstrap-components>=1.6.0
+dash-bootstrap-components>=1.6.0; python_version >= "3.8"
+dash-bootstrap-components>=1.0,<1.1; python_version >= "3.6" and python_version < "3.8"
 numpy>=2.1.0; python_version >= "3.10"
 numpy>=1.24,<2.0; python_version >= "3.8" and python_version < "3.10"
 numpy>=1.19,<1.20; python_version >= "3.6" and python_version < "3.8"
 pandas>=2.2.0; python_version >= "3.9"
 pandas>=2.0,<2.1; python_version >= "3.8" and python_version < "3.9"
 pandas>=1.1,<1.2; python_version >= "3.6" and python_version < "3.8"
-plotly>=5.24.0
-reportlab>=4.2.0
+plotly>=5.24.0; python_version >= "3.8"
+plotly>=5.18,<5.19; python_version >= "3.6" and python_version < "3.8"
+reportlab>=4.2.0; python_version >= "3.8"
+reportlab>=3.6,<3.7; python_version >= "3.6" and python_version < "3.8"
 matplotlib>=3.9.0; python_version >= "3.9"
 matplotlib>=3.7,<3.8; python_version >= "3.8" and python_version < "3.9"
 matplotlib>=3.3,<3.4; python_version >= "3.6" and python_version < "3.8"
 dash-daq>=0.5.0
-kaleido>=0.2.1
+kaleido>=1.0.0; python_version >= "3.8"
+kaleido>=0.2.1,<0.3; python_version >= "3.6" and python_version < "3.8"
 pyarrow>=18.0.0; python_version >= "3.9"
 pyarrow>=12.0.0,<18.0.0; python_version >= "3.8" and python_version < "3.9"
 pyarrow>=3.0,<7.0; python_version >= "3.6" and python_version < "3.8"
