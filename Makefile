@@ -18,15 +18,20 @@ ifneq ($(MAKECMDGOALS),clean)
   PY_EXECUTABLE := $(shell $(PYTHON) -c 'import sys; print(sys.executable)')
   PY_EXECUTABLE_DIR := $(shell dirname "$(PY_EXECUTABLE)")
 
-  PY_CONFIG := $(shell command -v "$(PYTHON)-config" 2>/dev/null || \
-                        command -v "$(PY_EXECUTABLE)-config" 2>/dev/null || \
-                        command -v "$(PY_EXECUTABLE_DIR)/python$(PY_VER)-config" 2>/dev/null || \
-                        command -v "$(PY_EXECUTABLE_DIR)/python3-config" 2>/dev/null || \
-                        command -v "python$(PY_VER)-config" 2>/dev/null || \
-                        command -v "python3-config" 2>/dev/null)
+  PY_CONFIG := $(shell for candidate in \
+                          "$(PY_EXECUTABLE_DIR)/python$(PY_VER)-config" \
+                          "python$(PY_VER)-config" \
+                          "$(PY_EXECUTABLE)-config" \
+                          "$(PYTHON)-config" \
+                          "$(PY_EXECUTABLE_DIR)/python3-config" \
+                          "python3-config"; do \
+                          config="$$(command -v "$$candidate" 2>/dev/null)" || continue; \
+                          includes="$$("$$config" --includes 2>/dev/null)" || continue; \
+                          if [[ "$$includes" == *"python$(PY_VER)"* ]]; then echo "$$config"; exit 0; fi; \
+                        done)
 
   ifeq ($(PY_CONFIG),)
-    $(error "Cannot find python-config for $(PYTHON). Looked for python$(PY_VER)-config. Install python$(PY_VER)-dev or run 'make PYTHON=/path/to/python$(PY_VER)'")
+    $(error "Cannot find python-config matching $(PYTHON) ($(PY_VER)). Install python$(PY_VER)-dev or run 'make PYTHON=/path/to/python$(PY_VER)'")
   endif
 
   PY_CFLAGS  := $(shell $(PY_CONFIG) --includes)
