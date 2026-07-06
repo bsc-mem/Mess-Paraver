@@ -31,14 +31,17 @@ ifneq ($(MAKECMDGOALS),clean)
 
   PY_CFLAGS  := $(shell $(PY_CONFIG) --includes)
 
-  PY_LDFLAGS := $(shell $(PY_CONFIG) --ldflags --embed 2>/dev/null || $(PY_CONFIG) --ldflags)
+  PY_LDFLAGS := $(shell for args in "--ldflags --embed" "--ldflags" "--libs"; do \
+                          flags="$$($(PY_CONFIG) $$args 2>/dev/null)"; \
+                          if [[ "$$flags" == *-lpython* ]]; then echo "$$flags"; exit 0; fi; \
+                        done; \
+                        for pkg in "python-$(PY_VER)-embed" "python-$(PY_VER)"; do \
+                          flags="$$(pkg-config --libs "$$pkg" 2>/dev/null)"; \
+                          if [[ "$$flags" == *-lpython* ]]; then echo "$$flags"; exit 0; fi; \
+                        done)
 
-  ifeq ($(findstring -lpython,$(PY_LDFLAGS)),)
-    PKG_LIBS  := $(shell pkg-config --libs python-$(PY_VER)-embed 2>/dev/null || \
-                            pkg-config --libs python-$(PY_VER) 2>/dev/null)
-    ifneq ($(PKG_LIBS),)
-      PY_LDFLAGS := $(PKG_LIBS)
-    endif
+  ifeq ($(PY_LDFLAGS),)
+    $(error "Cannot find Python linker flags for $(PYTHON). Tried $(PY_CONFIG) and pkg-config for python-$(PY_VER)")
   endif
 endif
 
