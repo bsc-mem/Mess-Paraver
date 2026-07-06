@@ -390,7 +390,7 @@ void writeMemoryMetricsRecord(unordered_map<string, long long int> metrics,
                               bool keepOriginalTrace,
                               int mcIDcorrespondence,
                               unsigned long long lastPoppedTime,
-                              unordered_map<string, double> lastWrittenMetrics,
+                              unordered_map<string, long long int> lastWrittenMetrics,
                               ProcessModel<> outputProcessModel,
                               ResourceModel<> outputResourceModel,
                               TraceBodyIO_v1< fstream, MyRecordContainer, ProcessModel<>, ResourceModel<>, TState, TEventType, MyMetadataManager, TTime, MyRecord > &outputTraceBody,
@@ -416,9 +416,16 @@ void writeMemoryMetricsRecord(unordered_map<string, long long int> metrics,
   int i = 0;
   for (auto const& metricLabels : memoryMetricLabels) {
     string key = metricLabels.first;
-    long long int val = metrics[key];
+    auto metricIt = metrics.find(key);
+    if (metricIt == metrics.end()) {
+      i++;
+      continue;
+    }
+
+    long long int val = metricIt->second;
     MyRecord tmpRecord;
-    if (lastWrittenMetrics.empty() || lastWrittenMetrics[key] != val) {
+    auto lastMetricIt = lastWrittenMetrics.find(key);
+    if (lastMetricIt == lastWrittenMetrics.end() || lastMetricIt->second != val) {
       // Write new record only if the metric is different from the last written value in the same socket
       tmpRecord.type = EVENT;
       tmpRecord.time = lastPoppedTime;
@@ -474,6 +481,7 @@ bool processAndWriteMemoryMetricsIfPossible(vector<NodeMemoryRecords> &nodes,
     // Convert metrics to int because prv files do not accept decimals. The number of decimal places is specified in the pcf file
     // and it is stored in the PRECISION variable
     unordered_map<string, long long int> metrics_int;
+    unordered_map<string, long long int> lastWrittenMetrics_int;
     double pow_10 = pow(10.0f, (double)PRECISION);
     // for (long unsigned int i = 0; i < metrics.size(); i++) {
     for (auto const& metric : metrics) {
@@ -486,13 +494,20 @@ bool processAndWriteMemoryMetricsIfPossible(vector<NodeMemoryRecords> &nodes,
         metrics_int[key] = round(val * pow_10);
       }
     }
+    for (auto const& metric : lastWrittenMetrics) {
+      string key = metric.first;
+      double val = metric.second;
+      if (val >= 0) {
+        lastWrittenMetrics_int[key] = round(val * pow_10);
+      }
+    }
 
     // Write all trace records that occurred before or at the same time as the current smallest time
     writePreviousRecords(outputRecords, smallestMCTime, outputProcessModel, outputResourceModel, outputTraceBody, outputTraceFile);
 
     SocketMemoryRecords &socket = node.sockets[smallestTimeSocketID];
     writeMemoryMetricsRecord(metrics_int, smallestTimeINode, smallestTimeSocketID, keepOriginalTrace, socket.memoryControllerIDsCorrespondence[smallestTimeMCID],
-                             socket.getLastPoppedTime(), lastWrittenMetrics, outputProcessModel, outputResourceModel, outputTraceBody, outputTraceFile);
+                             socket.getLastPoppedTime(), lastWrittenMetrics_int, outputProcessModel, outputResourceModel, outputTraceBody, outputTraceFile);
     node.setLastWrittenMetrics(smallestTimeSocketID, smallestTimeMCID, metrics);
     return true;
   }
