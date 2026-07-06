@@ -37,6 +37,22 @@ string getDashboardPythonExecutable() {
     return MESS_PYTHON_EXECUTABLE;
 }
 
+void initializePythonRuntime() {
+    if (Py_IsInitialized()) {
+        return;
+    }
+
+    static wchar_t* programName = nullptr;
+    if (programName == nullptr) {
+        programName = Py_DecodeLocale(getDashboardPythonExecutable().c_str(), nullptr);
+        if (programName != nullptr) {
+            Py_SetProgramName(programName);
+        }
+    }
+
+    Py_Initialize();
+}
+
 void printPythonImportDiagnostics(const string &modulePath) {
     cerr << "Python import diagnostics:" << endl;
     cerr << "  module path: " << modulePath << endl;
@@ -68,13 +84,13 @@ ProfetPyAdapter::ProfetPyAdapter() {}
 
 
 ProfetPyAdapter::ProfetPyAdapter(string projectPath) {
-    Py_Initialize();  // initialize Python
+    initializePythonRuntime();
     setPathVariables(projectPath);
     loadProfetIntegrationModule();
 }
 
 ProfetPyAdapter::ProfetPyAdapter(string projectPath, string cpuModel, string memorySystem, bool displayWarnings = true) {
-    Py_Initialize();  // initialize Python
+    initializePythonRuntime();
     setPathVariables(projectPath);
     loadProfetIntegrationModule();
 
