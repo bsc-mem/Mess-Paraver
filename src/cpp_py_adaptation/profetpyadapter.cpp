@@ -10,18 +10,87 @@
 #include "profetpyadapter.h"
 using namespace std;
 
+#ifndef MESS_PYTHON_EXECUTABLE
+#define MESS_PYTHON_EXECUTABLE "python3"
+#endif
+
+
+namespace {
+string shellQuote(const string &value) {
+    string quoted = "'";
+    for (char c : value) {
+        if (c == '\'') {
+            quoted += "'\\''";
+        } else {
+            quoted += c;
+        }
+    }
+    quoted += "'";
+    return quoted;
+}
+
+string getDashboardPythonExecutable() {
+    const char* overridePython = getenv("MESS_PRV_PYTHON");
+    if (overridePython != nullptr && overridePython[0] != '\0') {
+        return overridePython;
+    }
+    return MESS_PYTHON_EXECUTABLE;
+}
+
+void initializePythonRuntime() {
+    if (Py_IsInitialized()) {
+        return;
+    }
+
+    static wchar_t* programName = nullptr;
+    if (programName == nullptr) {
+        programName = Py_DecodeLocale(getDashboardPythonExecutable().c_str(), nullptr);
+        if (programName != nullptr) {
+            Py_SetProgramName(programName);
+        }
+    }
+
+    Py_Initialize();
+}
+
+void printPythonImportDiagnostics(const string &modulePath) {
+    cerr << "Python import diagnostics:" << endl;
+    cerr << "  module path: " << modulePath << endl;
+    cerr << "  python version: " << Py_GetVersion() << endl;
+    cerr << "  python executable: ";
+    PyObject* executable = PySys_GetObject((char*)"executable");
+    if (executable != nullptr) {
+        PyObject* executableStr = PyObject_Str(executable);
+        if (executableStr != nullptr) {
+            cerr << PyUnicode_AsUTF8(executableStr);
+            Py_DECREF(executableStr);
+        }
+    }
+    cerr << endl;
+
+    PyObject* path = PySys_GetObject((char*)"path");
+    if (path != nullptr) {
+        PyObject* pathStr = PyObject_Repr(path);
+        if (pathStr != nullptr) {
+            cerr << "  sys.path: " << PyUnicode_AsUTF8(pathStr) << endl;
+            Py_DECREF(pathStr);
+        }
+    }
+}
+}
+
 
 ProfetPyAdapter::ProfetPyAdapter() {}
 
 
 ProfetPyAdapter::ProfetPyAdapter(string projectPath) {
-    Py_Initialize();  // initialize Python
+    initializePythonRuntime();
     setPathVariables(projectPath);
     loadProfetIntegrationModule();
 }
 
 ProfetPyAdapter::ProfetPyAdapter(string projectPath, string cpuModel, string memorySystem, bool displayWarnings = true) {
-    Py_Initialize();  // initialize Python
+    initializePythonRuntime();
     setPathVariables(projectPath);
     loadProfetIntegrationModule();
 
@@ -46,10 +115,11 @@ ProfetPyAdapter::~ProfetPyAdapter() {
 }
 
 void ProfetPyAdapter::setPathVariables(string projectPath) {
-    this->projectPath = projectPath;
-    projectSrcPath = projectPath + "src/";
-    projectDataPath = projectPath + "data/";
-    profetIntegrationPath = projectSrcPath + "cpp_py_adaptation/";
+    fs::path rootPath(projectPath);
+    this->projectPath = (rootPath / "").string();
+    projectSrcPath = (rootPath / "src" / "").string();
+    projectDataPath = (rootPath / "data" / "").string();
+    profetIntegrationPath = (rootPath / "src" / "cpp_py_adaptation" / "").string();
 }
 
 void ProfetPyAdapter::loadProfetIntegrationModule() {
@@ -61,7 +131,13 @@ void ProfetPyAdapter::loadProfetIntegrationModule() {
 
     // Load PROFET integration module
     profetIntegrationModule = PyImport_ImportModule("profet_integration");
-    raisePyErrorIfNull(profetIntegrationModule, "ERROR when importing \"mess_integration\" module.");
+    if (profetIntegrationModule == NULL) {
+        PyObject *errType = NULL, *errValue = NULL, *errTraceback = NULL;
+        PyErr_Fetch(&errType, &errValue, &errTraceback);
+        printPythonImportDiagnostics(profetIntegrationPath);
+        PyErr_Restore(errType, errValue, errTraceback);
+    }
+    raisePyErrorIfNull(profetIntegrationModule, "ERROR when importing \"profet_integration\" module.");
 }
 
 PyObject* ProfetPyAdapter::getRowFromDB() {
@@ -84,7 +160,7 @@ string ProfetPyAdapter::getCurvesPath() {
     raisePyErrorIfNull(curvesPath, "ERROR getting Python dictionary with memory values curves.");
 
     // Return PyObject as string
-    return _PyUnicode_AsString(curvesPath);
+    return PyUnicode_AsUTF8(curvesPath);
 }
 
  void ProfetPyAdapter::setCurvesBwsLats(string curvesPath, map<int, pair<vector<double>, vector<double>>> &curves, map<int, pair<PyObject*, PyObject*>> &pyCurves) {
@@ -327,7 +403,8 @@ void ProfetPyAdapter::runDashApp(string traceFilePath, double precision, double 
     if (expertMode) {
         expert = "--expert";
     }
-    string pythonCall = "python3 " + dashPlotsPath + " " + expert + " \'"  + traceFileAbsPath + "\' \'"  + curvesPath + "\' \'" + dashConfigFile + "\'";
+    string pythonExecutable = shellQuote(getDashboardPythonExecutable());
+    string pythonCall = pythonExecutable + " " + dashPlotsPath + " " + expert + " \'"  + traceFileAbsPath + "\' \'"  + curvesPath + "\' \'" + dashConfigFile + "\'";
     if (keepOriginalTraceFile) {
         pythonCall += " --keep-original";
     }
@@ -337,7 +414,7 @@ void ProfetPyAdapter::runDashApp(string traceFilePath, double precision, double 
     // Create and open a file
     ofstream scriptContent(dashScriptFile);
     string featherTraceFile = regex_replace(traceFileAbsPath, regex(".prv"), ".feather");
-    string scriptPyCall = "python3 " + dashPlotsPath + " " + expert + " \'"  + featherTraceFile + "\' \'"  + curvesPath + "\' \'" + dashConfigFile + "\'";
+    string scriptPyCall = pythonExecutable + " " + dashPlotsPath + " " + expert + " \'"  + featherTraceFile + "\' \'"  + curvesPath + "\' \'" + dashConfigFile + "\'";
     if (keepOriginalTraceFile) {
         scriptPyCall += " --keep-original";
     }

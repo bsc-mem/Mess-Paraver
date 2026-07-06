@@ -2,16 +2,62 @@ import colorsys
 import inspect, os, sys, pathlib, platform
 
 
+def _python_abi_tag():
+    return f"cp{sys.version_info.major}{sys.version_info.minor}"
+
+
+def _wheel_tags(wheel_dir):
+    tags = set()
+    for wheel_meta in wheel_dir.glob("*.dist-info/WHEEL"):
+        try:
+            for line in wheel_meta.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("Tag: "):
+                    tags.add(line.split(": ", 1)[1])
+        except OSError:
+            continue
+    return tags
+
+
+def _wheel_dir_matches_runtime(wheel_dir, abi_tag):
+    tags = _wheel_tags(wheel_dir)
+    if not tags:
+        return True
+
+    native_tags = [
+        tag
+        for tag in tags
+        if not tag.startswith("py3-none-any") and "-abi3-" not in tag
+    ]
+    if not native_tags:
+        return True
+
+    return any(tag.startswith(f"{abi_tag}-") for tag in native_tags)
+
+
 def _add_private_wheels():
-    exe_dir = pathlib.Path(sys.executable).resolve().parent
     arch = (
         "python_libs_x86_64" if platform.machine() == "x86_64" else "python_libs_arm64"
     )
     script_dir = pathlib.Path(__file__).resolve().parent
     base_dir = script_dir.parent.parent
-    wheel = base_dir / "bin" / arch
-    if wheel.is_dir():
-        sys.path.insert(0, str(wheel))
+    abi_tag = _python_abi_tag()
+    candidates = [base_dir / "bin" / f"{arch}_{abi_tag}", base_dir / "bin" / arch]
+    incompatible = []
+
+    for wheel in candidates:
+        if not wheel.is_dir():
+            continue
+        if _wheel_dir_matches_runtime(wheel, abi_tag):
+            sys.path.insert(0, str(wheel))
+            return
+        incompatible.append(str(wheel))
+
+    if incompatible:
+        raise ImportError(
+            "Bundled Python libraries are incompatible with this Python runtime. "
+            f"Runtime ABI is {abi_tag}; incompatible directories: {', '.join(incompatible)}. "
+            "Rebuild mess-prv and its bundled Python libraries with the same Python interpreter."
+        )
 
 
 _add_private_wheels()

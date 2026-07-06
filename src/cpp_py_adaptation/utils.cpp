@@ -25,7 +25,7 @@ double getPyDictDouble(PyObject* pyDict, string attribute) {
 
 string getPyDictString(PyObject* pyDict, string attribute) {
     PyObject* itemValue = PyDict_GetItemString(pyDict, attribute.c_str());
-    return _PyUnicode_AsString(itemValue);
+    return PyUnicode_AsUTF8(itemValue);
 }
 
 double getClosestValue(vector<double> values, double target) {
