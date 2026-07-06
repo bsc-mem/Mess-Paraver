@@ -7,16 +7,14 @@ You should have received a copy of the BSD-3 license with
 this file. If not, please visit: https://opensource.org/licenses/BSD-3-Clause
 """
 
-from __future__ import annotations
-
 import inspect, os, sys, pathlib, platform
 
 
-def _python_abi_tag() -> str:
+def _python_abi_tag():
     return f"cp{sys.version_info.major}{sys.version_info.minor}"
 
 
-def _wheel_tags(wheel_dir: pathlib.Path) -> set[str]:
+def _wheel_tags(wheel_dir):
     tags = set()
     for wheel_meta in wheel_dir.glob("*.dist-info/WHEEL"):
         try:
@@ -28,7 +26,7 @@ def _wheel_tags(wheel_dir: pathlib.Path) -> set[str]:
     return tags
 
 
-def _wheel_dir_matches_runtime(wheel_dir: pathlib.Path, abi_tag: str) -> bool:
+def _wheel_dir_matches_runtime(wheel_dir, abi_tag):
     tags = _wheel_tags(wheel_dir)
     if not tags:
         return True
