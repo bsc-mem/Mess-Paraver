@@ -116,7 +116,10 @@ void ProfetPyAdapter::loadProfetIntegrationModule() {
     // Load PROFET integration module
     profetIntegrationModule = PyImport_ImportModule("profet_integration");
     if (profetIntegrationModule == NULL) {
+        PyObject *errType = NULL, *errValue = NULL, *errTraceback = NULL;
+        PyErr_Fetch(&errType, &errValue, &errTraceback);
         printPythonImportDiagnostics(profetIntegrationPath);
+        PyErr_Restore(errType, errValue, errTraceback);
     }
     raisePyErrorIfNull(profetIntegrationModule, "ERROR when importing \"profet_integration\" module.");
 }

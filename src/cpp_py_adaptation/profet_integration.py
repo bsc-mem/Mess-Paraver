@@ -72,6 +72,13 @@ def _add_private_wheels():
             "Rebuild mess-prv and its bundled Python libraries with the same Python interpreter."
         )
 
+    searched = ", ".join(str(path) for path in candidates)
+    raise ImportError(
+        "Bundled Python libraries were not found. "
+        f"Runtime ABI is {abi_tag}; searched directories: {searched}. "
+        "Run 'make clean && make' with the same Python interpreter used by mess-prv."
+    )
+
 
 _add_private_wheels()
 
