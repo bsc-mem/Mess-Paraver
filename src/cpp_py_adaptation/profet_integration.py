@@ -43,12 +43,18 @@ def _wheel_dir_matches_runtime(wheel_dir, abi_tag):
 
 
 def _add_private_wheels():
-    exe_dir = pathlib.Path(sys.executable).resolve().parent
     arch = (
         "python_libs_x86_64" if platform.machine() == "x86_64" else "python_libs_arm64"
     )
     abi_tag = _python_abi_tag()
-    candidates = [exe_dir / f"{arch}_{abi_tag}", exe_dir / arch]
+    module_root = pathlib.Path(__file__).resolve().parents[2]
+    exe_dir = pathlib.Path(sys.executable).resolve().parent
+    candidates = [
+        module_root / "bin" / f"{arch}_{abi_tag}",
+        module_root / "bin" / arch,
+        exe_dir / f"{arch}_{abi_tag}",
+        exe_dir / arch,
+    ]
     incompatible = []
 
     for wheel in candidates:

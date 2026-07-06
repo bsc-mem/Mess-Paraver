@@ -99,10 +99,11 @@ ProfetPyAdapter::~ProfetPyAdapter() {
 }
 
 void ProfetPyAdapter::setPathVariables(string projectPath) {
-    this->projectPath = projectPath;
-    projectSrcPath = projectPath + "src/";
-    projectDataPath = projectPath + "data/";
-    profetIntegrationPath = projectSrcPath + "cpp_py_adaptation/";
+    fs::path rootPath(projectPath);
+    this->projectPath = (rootPath / "").string();
+    projectSrcPath = (rootPath / "src" / "").string();
+    projectDataPath = (rootPath / "data" / "").string();
+    profetIntegrationPath = (rootPath / "src" / "cpp_py_adaptation" / "").string();
 }
 
 void ProfetPyAdapter::loadProfetIntegrationModule() {
