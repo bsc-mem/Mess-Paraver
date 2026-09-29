@@ -1,8 +1,8 @@
 # Mess-Paraver
 
-The [Mess Benchmark](https://github.com/bsc-mem/Mess-benchmark) profiles memory system performance and helps quantify the application pressure to the memory system This is a tool for integrating some of the Mess functionalities with the Paraver tool (https://github.com/bsc-performance-tools/paraver-kernel) in order to help users understand memory system performance and quantify the pressure their applications put to that system.
+The [Mess Benchmark](https://github.com/bsc-mem/Mess) profiles memory system performance and helps quantify the application pressure to the memory system This is a tool for integrating some of the Mess functionalities with the Paraver tool (https://github.com/bsc-performance-tools/paraver-kernel) in order to help users understand memory system performance and quantify the pressure their applications put to that system.
 
-
+For up-to-date system bandwidth–latency curves, use [Mess-Results](https://github.com/bsc-mem/Mess-Results).
 
 ## Prerequisites
 
